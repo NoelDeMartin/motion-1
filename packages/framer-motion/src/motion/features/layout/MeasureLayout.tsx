@@ -84,8 +84,7 @@ class MeasureLayoutWithContext extends Component<MeasureProps> {
         if (
             drag ||
             prevProps.layoutDependency !== layoutDependency ||
-            layoutDependency === undefined ||
-            prevProps.isPresent !== isPresent
+            layoutDependency === undefined
         ) {
             projection.willUpdate()
         } else {

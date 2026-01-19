@@ -199,6 +199,47 @@ describe("Layout animation", () => {
             })
     })
 
+    it("Doesn't animate shared layout components when layoutDependency hasn't changed (issue #1436)", () => {
+        cy.visit("?test=layout-shared-dependency")
+            .wait(50)
+            .get("#box")
+            .should(([$box]: any) => {
+                // Initial position in section A
+                expectBbox($box, {
+                    top: 100,
+                    left: 0,
+                    width: 100,
+                    height: 100,
+                })
+                // Color should be red (no animation started)
+                expect(getComputedStyle($box).backgroundColor).to.equal(
+                    "rgb(255, 0, 0)"
+                )
+            })
+            .get("#switch-section")
+            .trigger("click")
+            .wait(50)
+            .get("#box")
+            .should(([$box]: any) => {
+                /**
+                 * After switching sections, the box should immediately be at
+                 * its new position without animating. If an animation started,
+                 * the color would change to green. With the easing set to
+                 * always return 0.5, if animating it would be at the midpoint.
+                 */
+                expectBbox($box, {
+                    top: 200,
+                    left: 200,
+                    width: 100,
+                    height: 100,
+                })
+                // Color should still be red (no animation triggered)
+                expect(getComputedStyle($box).backgroundColor).to.equal(
+                    "rgb(255, 0, 0)"
+                )
+            })
+    })
+
     it("Has a correct bounding box when a transform is applied", () => {
         cy.visit("?test=layout-scaled-child-in-transformed-parent")
             .wait(50)
