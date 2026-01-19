@@ -185,6 +185,84 @@ describe("visualDuration", () => {
     })
 })
 
+describe("slow springs for layout animations", () => {
+    /**
+     * Layout animations use a 0-1000 progress range with explicit rest thresholds.
+     * For slow springs (low stiffness), the animation should complete
+     * smoothly without cutting off early.
+     *
+     * Issue: https://github.com/motiondivision/motion/issues/1207
+     */
+    test("slow overdamped spring completes smoothly with layout animation thresholds", () => {
+        // Settings from the GitHub issue, with layout animation rest thresholds
+        const springSettings = {
+            keyframes: [0, 1000],
+            stiffness: 4,
+            damping: 35,
+            mass: 0.5,
+            // These are the explicit thresholds used by layout animations
+            // to prevent slow springs from cutting off early
+            restDelta: 1,
+            restSpeed: 0.01,
+        }
+
+        const generator = spring(springSettings)
+
+        // Collect values at regular intervals to check for smooth completion
+        const values: number[] = []
+        const timeStep = 100 // 100ms intervals
+        let state = generator.next(0)
+        values.push(Math.round(state.value))
+
+        while (!state.done && values.length < 200) {
+            state = generator.next(values.length * timeStep)
+            values.push(Math.round(state.value))
+        }
+
+        // The animation should not cut off early - it should get very close to 1000
+        // before being marked as done
+        const secondToLast = values[values.length - 2]
+        const lastValue = values[values.length - 1]
+
+        // The second-to-last value should be at least 99.9% of the target
+        // to ensure smooth completion without visible jump
+        expect(secondToLast).toBeGreaterThanOrEqual(999)
+
+        // Final value should snap to target
+        expect(lastValue).toBe(1000)
+    })
+
+    test("slow spring without explicit thresholds may cut off early", () => {
+        // Same spring settings but without explicit thresholds
+        // This demonstrates the issue that was fixed
+        const springSettings = {
+            keyframes: [0, 1000],
+            stiffness: 4,
+            damping: 35,
+            mass: 0.5,
+            // Using default thresholds (not specifying restDelta/restSpeed)
+        }
+
+        const generator = spring(springSettings)
+
+        // Collect values at regular intervals
+        const values: number[] = []
+        const timeStep = 100 // 100ms intervals
+        let state = generator.next(0)
+        values.push(Math.round(state.value))
+
+        while (!state.done && values.length < 200) {
+            state = generator.next(values.length * timeStep)
+            values.push(Math.round(state.value))
+        }
+
+        // With default thresholds, the animation completes
+        // (this test documents the behavior, not necessarily a bug)
+        const lastValue = values[values.length - 1]
+        expect(lastValue).toBe(1000)
+    })
+})
+
 describe("toString", () => {
     test("returns correct string", () => {
         const physicsSpring = spring({

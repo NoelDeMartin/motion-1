@@ -1656,11 +1656,21 @@ export function createProjectionNode<I>({
 
                 this.currentAnimation = animateSingleValue(
                     this.motionValue,
-                    [0, 1000],
+                    [0, animationTarget],
                     {
                         ...(options as any),
                         velocity: 0,
                         isSync: true,
+                        /**
+                         * Use tighter rest thresholds for layout animations to ensure
+                         * slow springs (low stiffness) don't cut off prematurely.
+                         * The default restSpeed (2) can cause slow springs to snap
+                         * to the target while still visibly animating.
+                         *
+                         * See: https://github.com/motiondivision/motion/issues/1207
+                         */
+                        restDelta: 1,
+                        restSpeed: 0.01,
                         onUpdate: (latest: number) => {
                             this.mixTargetDelta(latest)
                             options.onUpdate && options.onUpdate(latest)
